@@ -55,7 +55,7 @@ module.exports.scripttask = function (parent) {
             if (obj.config.scheduler?.enabled) {
                 obj.initAdvancedScheduler();
             } else {
-                console.log('ScriptTask: Using legacy scheduler');
+                console.log('ScriptTask: Enhanced scheduler disabled, using legacy scheduler');
                 obj.resetQueueTimer();
             }
             
@@ -68,7 +68,7 @@ module.exports.scripttask = function (parent) {
             }
         } else {
             // No enhanced config, use legacy scheduler
-            console.log('ScriptTask: Using legacy scheduler');
+            console.log('ScriptTask: No enhanced config found, using legacy scheduler');
             obj.resetQueueTimer();
         }
     };
@@ -811,8 +811,10 @@ module.exports.scripttask = function (parent) {
             obj.advancedScheduler.initialize()
                 .then(() => {
                     console.log('ScriptTask: Advanced Scheduler initialized');
-                    // Stop legacy timer since we're using advanced scheduler
-                    clearInterval(obj.intervalTimer);
+                    // Stop legacy timer if it's running
+                    if (obj.intervalTimer) {
+                        clearInterval(obj.intervalTimer);
+                    }
                 })
                 .catch(e => {
                     console.error('ScriptTask: Error initializing advanced scheduler, falling back to legacy:', e.message);
