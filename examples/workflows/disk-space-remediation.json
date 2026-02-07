@@ -1,0 +1,80 @@
+{
+  "name": "Disk Space Remediation",
+  "description": "Automatically clean up disk space when usage exceeds threshold",
+  "trigger": {
+    "type": "threshold",
+    "condition": {
+      "type": "threshold",
+      "field": "diskUsagePercent",
+      "operator": "gt",
+      "value": 85
+    }
+  },
+  "steps": [
+    {
+      "id": "check-disk",
+      "type": "script",
+      "scriptId": "CHECK_DISK_USAGE_SCRIPT_ID",
+      "timeout": 60,
+      "successCriteria": {
+        "type": "exitCode",
+        "exitCode": 0
+      },
+      "onSuccess": "cleanup-temp",
+      "onFailure": "alert-critical"
+    },
+    {
+      "id": "cleanup-temp",
+      "type": "script",
+      "scriptId": "CLEANUP_TEMP_FILES_SCRIPT_ID",
+      "timeout": 300,
+      "onSuccess": "verify-space",
+      "onFailure": "cleanup-logs"
+    },
+    {
+      "id": "cleanup-logs",
+      "type": "script",
+      "scriptId": "CLEANUP_OLD_LOGS_SCRIPT_ID",
+      "timeout": 300,
+      "onSuccess": "verify-space",
+      "onFailure": "alert-escalate"
+    },
+    {
+      "id": "verify-space",
+      "type": "script",
+      "scriptId": "VERIFY_DISK_SPACE_SCRIPT_ID",
+      "timeout": 60,
+      "onSuccess": "notify-success",
+      "onFailure": "alert-escalate"
+    },
+    {
+      "id": "notify-success",
+      "type": "webhook",
+      "url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      "method": "POST",
+      "webhookType": "slack",
+      "timeout": 30,
+      "onSuccess": null
+    },
+    {
+      "id": "alert-critical",
+      "type": "webhook",
+      "url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      "method": "POST",
+      "webhookType": "slack",
+      "timeout": 30,
+      "onSuccess": null
+    },
+    {
+      "id": "alert-escalate",
+      "type": "email",
+      "to": "admin@company.com",
+      "subject": "Critical: Disk cleanup failed",
+      "body": "Automated disk cleanup failed. Manual intervention required.",
+      "timeout": 30,
+      "onSuccess": null
+    }
+  ],
+  "rollbackEnabled": true,
+  "enabled": true
+}

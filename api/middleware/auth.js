@@ -130,7 +130,11 @@ class AuthMiddleware {
                 return res.status(401).json({ error: 'Authentication required' });
             }
             
-            if (!req.user.siteAdmin && !(req.user.siteadmin & 0xFFFFFFFF)) {
+            // Check siteAdmin property (normalize to lowercase for consistency)
+            const isAdmin = req.user.siteAdmin || req.user.siteadmin;
+            
+            // For MeshCentral users, also check the bitwise flag
+            if (!isAdmin && !(req.user.siteadmin & 0xFFFFFFFF)) {
                 return res.status(403).json({ error: 'Admin permissions required' });
             }
             
@@ -147,8 +151,11 @@ class AuthMiddleware {
                 return res.status(401).json({ error: 'Authentication required' });
             }
             
+            // Check if user is admin (normalize property name)
+            const isAdmin = req.user.siteAdmin || req.user.siteadmin;
+            
             // Admins have all permissions
-            if (req.user.siteAdmin || (req.user.siteadmin & 0xFFFFFFFF)) {
+            if (isAdmin || (req.user.siteadmin & 0xFFFFFFFF)) {
                 return next();
             }
             

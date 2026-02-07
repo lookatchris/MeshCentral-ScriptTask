@@ -25,6 +25,27 @@ class APIServer {
     }
 
     createLogger() {
+        const fs = require('fs');
+        
+        // Ensure logs directory exists
+        const logsDir = path.resolve(this.config.logsPath || path.join(__dirname, '../logs'));
+        if (!fs.existsSync(logsDir)) {
+            try {
+                fs.mkdirSync(logsDir, { recursive: true });
+            } catch (e) {
+                console.error('ScriptTask API: Failed to create logs directory:', e.message);
+            }
+        }
+        
+        const transports = [new winston.transports.Console()];
+        
+        // Only add file transport if logs directory exists
+        if (fs.existsSync(logsDir)) {
+            transports.push(new winston.transports.File({ 
+                filename: path.join(logsDir, 'api.log')
+            }));
+        }
+        
         return winston.createLogger({
             format: winston.format.combine(
                 winston.format.timestamp(),
@@ -32,19 +53,14 @@ class APIServer {
                     return `${timestamp} [${level.toUpperCase()}] ScriptTask API: ${message}`;
                 })
             ),
-            transports: [
-                new winston.transports.Console(),
-                new winston.transports.File({ 
-                    filename: path.join(this.config.logsPath || './logs', 'api.log')
-                })
-            ]
+            transports: transports
         });
     }
 
     setupMiddleware() {
         this.app.use(helmet());
         
-        const allowedOrigins = this.config.api?.cors?.origins || ['http://localhost:3000'];
+        const allowedOrigins = this.config.api?.cors?.origins || ['http://localhost:8081', 'http://localhost:5173'];
         this.app.use(cors({
             origin: allowedOrigins,
             credentials: true
@@ -75,7 +91,7 @@ class APIServer {
         
         this.httpServer = createServer(this.app);
         
-        const allowedOrigins = this.config.api?.cors?.origins || ['http://localhost:3000'];
+        const allowedOrigins = this.config.api?.cors?.origins || ['http://localhost:8081', 'http://localhost:5173'];
         this.io = new Server(this.httpServer, {
             cors: {
                 origin: allowedOrigins,

@@ -1,0 +1,20 @@
+{
+  "name": "Daily Security Scan",
+  "description": "Run security vulnerability scan every day at 2 AM",
+  "scriptId": "SECURITY_SCAN_SCRIPT_ID",
+  "cronExpression": "0 2 * * *",
+  "timezone": "America/New_York",
+  "nodes": [],
+  "meshes": ["MESH_ID_HERE"],
+  "priority": "high",
+  "concurrency": {
+    "maxPerNode": 1,
+    "maxPerMesh": 5,
+    "maxGlobal": 20
+  },
+  "maintenanceWindowIds": [],
+  "dependsOn": [],
+  "jitter": 300,
+  "missedJobPolicy": "queue",
+  "enabled": true
+}
