@@ -153,8 +153,14 @@ class APIServer {
         const webappDistPath = path.join(__dirname, '../webapp/dist');
         const fs = require('fs');
         if (fs.existsSync(webappDistPath)) {
-            this.app.use(express.static(webappDistPath));
-            this.app.get('*', (req, res) => {
+            // Apply rate limiting to static files
+            const staticLimiter = rateLimit({
+                windowMs: 1 * 60 * 1000, // 1 minute
+                max: 300 // 300 requests per minute for static assets
+            });
+            
+            this.app.use(staticLimiter, express.static(webappDistPath));
+            this.app.get('*', staticLimiter, (req, res) => {
                 if (!req.path.startsWith('/api')) {
                     res.sendFile(path.join(webappDistPath, 'index.html'));
                 }
