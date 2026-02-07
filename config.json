@@ -1,9 +1,9 @@
 {
-  "name": "ScriptTask",
+  "name": "ScriptTask Enhanced",
   "shortName": "scripttask",
-  "version": "0.0.21",
+  "version": "2.0.0",
   "author": "looklikechris",
-  "description": "Script (PowerShell, BAT, Bash) runner for endpoints",
+  "description": "Advanced scripting, scheduling, and remediation for MeshCentral - with cron scheduler, workflow automation, and REST API",
   "hasAdminPanel": false,
   "homepage": "https://github.com/lookatchris/MeshCentral-ScriptTask",
   "changelogUrl": "https://raw.githubusercontent.com/lookatchris/MeshCentral-ScriptTask/master/changelog.md",
@@ -14,5 +14,37 @@
     "url": "https://github.com/lookatchris/MeshCentral-ScriptTask.git"
   },
   "versionHistoryUrl": "https://api.github.com/repos/lookatchris/MeshCentral-ScriptTask/tags",
-  "meshCentralCompat": ">=1.1.35"
+  "meshCentralCompat": ">=1.1.35",
+  "apiServer": {
+    "enabled": true,
+    "port": 8081,
+    "host": "0.0.0.0",
+    "cors": true,
+    "allowedOrigins": ["http://localhost:8081", "http://localhost:5173"]
+  },
+  "scheduler": {
+    "enabled": true,
+    "defaultTimezone": "UTC",
+    "maxConcurrentJobs": 50,
+    "checkIntervalSeconds": 30
+  },
+  "remediation": {
+    "enabled": true,
+    "defaultTimeout": 300,
+    "maxRetries": 3,
+    "exponentialBackoff": true
+  },
+  "webUI": {
+    "enabled": true,
+    "path": "/webapp/dist"
+  },
+  "security": {
+    "jwtExpiresIn": "24h",
+    "rateLimitWindowMs": 900000,
+    "rateLimitMaxRequests": 100
+  },
+  "logging": {
+    "level": "info",
+    "enableRequestLogging": true
+  }
 }
