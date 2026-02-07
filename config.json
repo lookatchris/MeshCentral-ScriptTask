@@ -1,7 +1,7 @@
 {
   "name": "ScriptTask Enhanced",
   "shortName": "scripttask",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "looklikechris",
   "description": "Advanced scripting, scheduling, and remediation for MeshCentral - with cron scheduler, workflow automation, and REST API",
   "hasAdminPanel": false,
