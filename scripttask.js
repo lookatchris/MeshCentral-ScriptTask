@@ -15,6 +15,13 @@ module.exports.scripttask = function (parent) {
     obj.intervalTimer = null;
     obj.debug = obj.meshServer.debug;
     obj.VIEWS = __dirname + '/views/';
+    
+    // Enhanced features
+    obj.config = null;
+    obj.advancedScheduler = null;
+    obj.remediationEngine = null;
+    obj.apiServer = null;
+    
     obj.exports = [      
         'onDeviceRefreshEnd',
         'resizeContent',
@@ -37,7 +44,33 @@ module.exports.scripttask = function (parent) {
     obj.server_startup = function() {
         obj.meshServer.pluginHandler.scripttask_db = require (__dirname + '/db.js').CreateDB(obj.meshServer);
         obj.db = obj.meshServer.pluginHandler.scripttask_db;
-        obj.resetQueueTimer();
+        
+        // Load configuration
+        obj.loadEnhancedConfig();
+        
+        // Initialize enhanced features if enabled
+        if (obj.config && (obj.config.apiServer?.enabled || obj.config.scheduler?.enabled || obj.config.remediation?.enabled)) {
+            console.log('ScriptTask: Initializing Enhanced features...');
+            
+            if (obj.config.scheduler?.enabled) {
+                obj.initAdvancedScheduler();
+            } else {
+                console.log('ScriptTask: Enhanced scheduler disabled, using legacy scheduler');
+                obj.resetQueueTimer();
+            }
+            
+            if (obj.config.remediation?.enabled) {
+                obj.initRemediationEngine();
+            }
+            
+            if (obj.config.apiServer?.enabled) {
+                obj.initAPIServer();
+            }
+        } else {
+            // No enhanced config, use legacy scheduler
+            console.log('ScriptTask: No enhanced config found, using legacy scheduler');
+            obj.resetQueueTimer();
+        }
     };
     
     obj.onDeviceRefreshEnd = function() {
@@ -728,6 +761,121 @@ module.exports.scripttask = function (parent) {
             break;
         }
     };
+    
+    // ==================== ENHANCED FEATURES ====================
+    // Configuration loader
+    obj.loadEnhancedConfig = function() {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const configPath = path.join(__dirname, 'config.json');
+            
+            if (fs.existsSync(configPath)) {
+                const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                
+                // Initialize config with defaults
+                obj.config = {
+                    apiServer: configData.apiServer || { enabled: false },
+                    scheduler: configData.scheduler || { enabled: false },
+                    remediation: configData.remediation || { enabled: false }
+                };
+                
+                console.log('ScriptTask: Enhanced configuration loaded');
+            } else {
+                obj.config = {
+                    apiServer: { enabled: false },
+                    scheduler: { enabled: false },
+                    remediation: { enabled: false }
+                };
+            }
+        } catch (e) {
+            console.log('ScriptTask: Error loading config, using defaults:', e.message);
+            obj.config = {
+                apiServer: { enabled: false },
+                scheduler: { enabled: false },
+                remediation: { enabled: false }
+            };
+        }
+    };
+    
+    // Initialize Advanced Scheduler
+    obj.initAdvancedScheduler = function() {
+        try {
+            const AdvancedScheduler = require(__dirname + '/scheduler/index.js');
+            obj.advancedScheduler = new AdvancedScheduler(
+                obj.meshServer,
+                obj.db,
+                obj.config.scheduler
+            );
+            
+            obj.advancedScheduler.initialize()
+                .then(() => {
+                    console.log('ScriptTask: Advanced Scheduler initialized');
+                    // Stop legacy timer if it's running
+                    if (obj.intervalTimer) {
+                        clearInterval(obj.intervalTimer);
+                    }
+                })
+                .catch(e => {
+                    console.error('ScriptTask: Error initializing advanced scheduler, falling back to legacy:', e.message);
+                    obj.resetQueueTimer();
+                });
+        } catch (e) {
+            console.error('ScriptTask: Error loading advanced scheduler module, using legacy:', e.message);
+            obj.resetQueueTimer();
+        }
+    };
+    
+    // Initialize Remediation Engine
+    obj.initRemediationEngine = function() {
+        try {
+            const RemediationEngine = require(__dirname + '/remediation/engine.js');
+            obj.remediationEngine = new RemediationEngine(
+                obj.meshServer,
+                obj.db,
+                obj.config.remediation
+            );
+            
+            obj.remediationEngine.initialize()
+                .then(() => {
+                    console.log('ScriptTask: Remediation Engine initialized');
+                })
+                .catch(e => {
+                    console.error('ScriptTask: Error initializing remediation engine:', e.message);
+                });
+        } catch (e) {
+            console.error('ScriptTask: Error loading remediation module:', e.message);
+        }
+    };
+    
+    // Initialize API Server
+    obj.initAPIServer = function() {
+        try {
+            const APIServer = require(__dirname + '/api/server.js');
+            obj.apiServer = new APIServer(
+                obj.meshServer,
+                obj.db,
+                obj.advancedScheduler || obj,
+                obj.remediationEngine,
+                obj.config
+            );
+            
+            obj.apiServer.initialize()
+                .then(() => {
+                    return obj.apiServer.start();
+                })
+                .then(() => {
+                    const port = obj.config.apiServer?.port || 8081;
+                    console.log(`ScriptTask: API server started on port ${port}`);
+                })
+                .catch(e => {
+                    console.error('ScriptTask: Error starting API server:', e.message);
+                });
+        } catch (e) {
+            console.error('ScriptTask: Error loading API server module:', e.message);
+        }
+    };
+    // ==================== END ENHANCED FEATURES ====================
     
     return obj;
 }
